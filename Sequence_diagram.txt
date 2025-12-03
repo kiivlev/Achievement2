@@ -1,0 +1,20 @@
+@startuml
+Actor -> WebServer : HTTP POST {number}
+WebServer -> ApplicationServer : REST POST {number}
+ApplicationServer -> Database : SQL SELECT number
+alt Уникальное число
+    ApplicationServer -> Database : SQL INSERT number
+    ApplicationServer -> WebServer : Успешный результат (number + 1)
+    WebServer -> Actor : HTTP 200 (number + 1)
+else Число уже существует
+    ApplicationServer -> Лог : Записать ошибку "Число уже обработано" (логирование в базу данных через SQL INSERT)
+    ApplicationServer -> Database : SQL SELECT * FROM ErrorLogs WHERE received_number = {number} ORDER BY timestamp DESC LIMIT 1
+    ApplicationServer -> WebServer : Ошибка (число уже существует + текст лога)
+    WebServer -> Actor : HTTP 400 (число уже существует) с описанием ошибки и последнего лога
+else Число меньше на единицу
+    ApplicationServer -> Лог : Записать ошибку "Некорректная последовательность" (логирование в базу данных через SQL INSERT)
+    ApplicationServer -> Database : SQL SELECT * FROM ErrorLogs WHERE received_number = {number} ORDER BY timestamp DESC LIMIT 1
+    ApplicationServer -> WebServer : Ошибка (число меньше на единицу + текст лога)
+    WebServer -> Actor : HTTP 400 (число меньше на единицу) с описанием ошибки и последнего лога
+
+@enduml
